@@ -46,13 +46,13 @@ typedef uint32 color;
 #define DRAWGROUP_COUNT (16)
 
 #if RETRO_REV02
-#define SCREEN_COUNT (4)
+#define SCREEN_COUNT (5)
 #else
 #define SCREEN_COUNT (2)
 #endif
 
-#define PLAYER_COUNT (4)
-#define CAMERA_COUNT (4)
+#define PLAYER_COUNT (5)
+#define CAMERA_COUNT (5)
 
 // 0x800 scene objects, 0x40 reserved ones, and 0x100 spare slots for creation
 #define RESERVE_ENTITY_COUNT (0x40)

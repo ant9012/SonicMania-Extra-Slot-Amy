@@ -6,19 +6,23 @@ set(GAME_NAME SonicMania CACHE STRING "The game directory to look into")
 
 set(OUTPUT_NAME "Game" CACHE STRING "The name of the built library")
 
-add_library(SonicMania SHARED
-    ${GAME_NAME}/Game.c
-    ${GAME_NAME}/Objects/All.c
-)
+if(EMSCRIPTEN)
+    include(RSDK-Library-GameAPI.cmake)
+else()
+    add_library(SonicMania SHARED
+        ${GAME_NAME}/Game.c
+        ${GAME_NAME}/Objects/All.c
+    )
 
-target_include_directories(SonicMania PRIVATE
-    ${GAME_NAME}/
-    ${GAME_NAME}/Objects/
-)
+    target_include_directories(SonicMania PRIVATE
+        ${GAME_NAME}/
+        ${GAME_NAME}/Objects/
+    )
 
-target_compile_options(SonicMania PRIVATE -DRETRO_REVISION=3 -DMANIA_PREPLUS=0)
+    target_compile_options(SonicMania PRIVATE -DRETRO_REVISION=3 -DMANIA_PREPLUS=0)
 
-set_target_properties(SonicMania PROPERTIES OUTPUT_NAME ${OUTPUT_NAME})
+    set_target_properties(SonicMania PROPERTIES OUTPUT_NAME ${OUTPUT_NAME})
+endif()
 
 unset(GAME_NAME CACHE)
 unset(OUTPUT_NAME CACHE)
