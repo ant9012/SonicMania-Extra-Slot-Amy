@@ -40,10 +40,86 @@ But in case you don't, here's the jist of what this mod is, in one sentence:
   * Encore Mode does not support having all six characters. Fix is unknown as of right now, so just choose your characters carefully when playing Encore.
   * Trying to rescue character number six from the Pinball bonus stage when your reserves are full will add an invalid character ID to reserve slot 2. The fix, and quite frankly, the cause of this, are unknown, so try to avoid the Pinball bonus stage if you can.
   
-## Installation
+## Installation For Windows
 To install this mod, you need to build this project into a Game.dll. Refer to [this tutorial](https://gamebanana.com/tuts/15254) for help with setting up dependencies for building Game.dlls and whatnot.
 After building, put this in the same directory as your RSDKv5U.exe and make sure it is named Game.dll. Also make sure to enable required assets mod, (linked above) or else the mod will not function properly.
 More in-depth installation instructions can be found [here](https://gamebanana.com/wips/50006).
+
+## Installation for other platforms (Linux, MacOS, etc.)
+
+Make sure all packages are installed for your specific platform here:
+
+### Linux
+- **pacman (Arch):** `sudo pacman -S base-devel cmake glew glfw libtheora`
+- **apt (Debian/Ubuntu):** `sudo apt install build-essential cmake libglew-dev libglfw3-dev libtheora-dev`
+- **rpm (Fedora):** `sudo dnf install make cmake gcc glew-devel glfw-devel libtheora-devel zlib-devel`
+- **xbps (Void):** `sudo xbps-install make cmake gcc pkg-config glew-devel glfw-devel libtheora-devel zlib-devel`
+
+#### (make sure to [install GL shaders!](#q-why-arent-videosfilters-working-while-using-gl))
+
+### Switch
+[Setup devKitPro](https://devkitpro.org/wiki/Getting_Started), then run the following:
+- `(dkp-)pacman -Syuu switch-dev switch-libogg switch-libtheora switch-sdl2 switch-glad`
+
+Finally, follow the [compilation steps below](###compiling) using `-DCMAKE_TOOLCHAIN_FILE=/opt/devkitpro/cmake/Switch.cmake` as arguments for `cmake -B build`.
+
+#### (make sure to [install GL shaders!](#q-why-arent-videosfilters-working-while-using-gl))
+
+### Compiling/Building the mod
+
+Run these at the root of the repo:
+
+```
+cmake -B build
+cmake --build build --config release
+```
+
+You will see your respective Game.dll/libGame.so in your build/ folder.
+
+
+## Installation for WASM/Emscripten
+
+Alright just install [Emscripten](https://emscripten.org/docs/getting_started/downloads.html) along with the dependencies for your platform: 
+
+### Windows
+Install [CMake](https://cmake.org/download/)
+
+### Linux
+- **pacman (Arch):** `sudo pacman -S base-devel cmake glew glfw libtheora`
+- **apt (Debian/Ubuntu):** `sudo apt install build-essential cmake libglew-dev libglfw3-dev libtheora-dev`
+- **rpm (Fedora):** `sudo dnf install make cmake gcc glew-devel glfw-devel libtheora-devel zlib-devel`
+- **xbps (Void):** `sudo xbps-install make cmake gcc pkg-config glew-devel glfw-devel libtheora-devel zlib-devel`
+
+### Switch
+[Setup devKitPro](https://devkitpro.org/wiki/Getting_Started), then run the following:
+- `(dkp-)pacman -Syuu switch-dev switch-libogg switch-libtheora switch-sdl2 switch-glad`
+
+Finally, follow the compilation steps below using `-DCMAKE_TOOLCHAIN_FILE=/opt/devkitpro/cmake/Switch.cmake` as arguments for `cmake -B build`.
+
+### Compiling/Building the mod
+
+Run these at the root of the repo:
+
+```
+emcmake -B build
+cmake --build build
+```
+
+You should get a Game.wasm in your build/ folder.
+This is made to work with this repo in mind: https://github.com/ant9012/RSDKv5-Decompilation-wasm/
+Simply upload them via your custom launcher or the [RSDK-Library Engine Manager](https://github.com/Jdaslepre/RSDK)
+
+(**MAKE SURE YOU HAVE THE FILES MODULE WORKING IF YOU'RE USING A CUSTOM LAUNCHER: https://github.com/Jdaslepre/RSDK-Library-FilesModule**)
+
+
+
+### Sonic Mania flags
+- `MANIA_FIRST_RELEASE`: Whether or not to build the first console release of Sonic Mania. Takes a boolean, defaults to `off`.
+- `MANIA_PRE_PLUS`: Whether or not to build a pre-plus version of Sonic Mania. Takes a boolean, defaults to `off`.
+- `GAME_INCLUDE_EDITOR`: Whether or not to include functions for use in certain RSDKv5 scene editors. Takes a boolean, defaults to `on`.
+- `GAME_VERSION`: Which release version of Sonic Mania to target for. Takes an integer, defaults to `3` when `MANIA_PRE_PLUS` is enabled, and `6` otherwise (last steam release).
+
+
   
 ## Final Words
  * Huge thanks to RDC and Chuli for decompiling Mania in the first place, it's the only thing that makes this mod possible!
