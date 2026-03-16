@@ -115,7 +115,7 @@ void UIDiorama_StageLoad(void)
     UIDiorama->bssFrames       = RSDK.LoadSpriteAnimation("SpecialBS/StageObjects.bin", SCOPE_STAGE);
 
     UIDiorama->dioramaAlt = UIDIORAMA_ALT_JOG;
-    RSDK.AddViewableVariable("Diorama Alt", &UIDiorama->dioramaAlt, VIEWVAR_UINT8, UIDIORAMA_ALT_RUN, UIDIORAMA_ALT_LOOP);
+    Safe_AddViewableVariable("Diorama Alt", &UIDiorama->dioramaAlt, VIEWVAR_UINT8, UIDIORAMA_ALT_RUN, UIDIORAMA_ALT_LOOP);
 }
 
 void UIDiorama_ChangeDiorama(uint8 dioramaID)

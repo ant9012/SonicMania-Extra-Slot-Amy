@@ -123,7 +123,7 @@ void RubyPortal_StageLoad(void)
 
 #if MANIA_USE_PLUS
     RubyPortal->openPortal = false;
-    RSDK.AddViewableVariable("Open Portal", &RubyPortal->openPortal, VIEWVAR_BOOL, false, true);
+    Safe_AddViewableVariable("Open Portal", &RubyPortal->openPortal, VIEWVAR_BOOL, false, true);
 #endif
 }
 

@@ -12,7 +12,7 @@ target_include_directories(${GAME_NAME} PRIVATE
     ${GAME_NAME}/Objects/
 )
 
-target_compile_options(${GAME_NAME} PRIVATE -DRETRO_REVISION=3 -DMANIA_PREPLUS=0)
+target_compile_options(${GAME_NAME} PRIVATE -DRETRO_REVISION=3 -DMANIA_PREPLUS=0 -DRETRO_REV02=1 -DRETRO_REV0U=1 -DRETRO_VER_EGS=1 -DRETRO_USE_MOD_LOADER=1)
 
 set_target_properties(${GAME_NAME} PROPERTIES
     CXX_STANDARD 17
@@ -31,7 +31,6 @@ set(emsc_link_options
     -sUSE_PTHREADS=1
     -sPTHREAD_POOL_SIZE=4
     -pthread
-    -g
 )
 
 target_link_options(${GAME_NAME} PRIVATE ${emsc_link_options})

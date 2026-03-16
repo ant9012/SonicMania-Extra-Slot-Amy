@@ -729,7 +729,7 @@ void Player_StageLoad(void)
 
     SceneInfo->debugMode = globals->medalMods & MEDAL_DEBUGMODE;
 #if MANIA_USE_PLUS
-    RSDK.AddViewableVariable("Debug Mode", &SceneInfo->debugMode, VIEWVAR_BOOL, false, true);
+    Safe_AddViewableVariable("Debug Mode", &SceneInfo->debugMode, VIEWVAR_BOOL, false, true);
 #endif
 
     if (globals->medalMods & MEDAL_AMYASSIST) {

@@ -1,5 +1,9 @@
 #include "Game.h"
 
+#if !RETRO_USE_MOD_LOADER
+#error "CRITICAL: RETRO_USE_MOD_LOADER IS NOT DEFINED! THE BUILD WILL CRASH!"
+#endif
+
 // -------------------------
 // ENGINE VARIABLES
 // -------------------------
@@ -79,22 +83,38 @@ void InitModAPI(void);
 #if MANIA_USE_PLUS
 void LinkGameLogicDLL(EngineInfo *info)
 {
+  printf("DEBUG: LinkGameLogicDLL was called!\n");
+  printf("DEBUG: Info Pointer: %p\n", info);
     memset(&API, 0, sizeof(APIFunctionTable));
+    printf("DEBUG: offset of AddViewableVariable: %zu\n", offsetof(RSDKFunctionTable, AddViewableVariable));
+    printf("DEBUG: offset of PlayStream: %zu\n", offsetof(RSDKFunctionTable, PlayStream));
     memset(&RSDK, 0, sizeof(RSDKFunctionTable));
+
+
+    if (info) {
+        printf("DEBUG: FunctionTable Pointer: %p\n", info->functionTable);
+    }
+
 
     if (info->functionTable)
         memcpy(&RSDK, info->functionTable, sizeof(RSDKFunctionTable));
 
     if (info->APITable)
-        memcpy(&API, info->APITable, sizeof(APIFunctionTable));
+      memcpy(&API, info->APITable, sizeof(APIFunctionTable));
+    printf("DEBUG: offset of AddViewableVariable: %zu\n", offsetof(RSDKFunctionTable, AddViewableVariable));
+    printf("DEBUG: offset of PlayStream: %zu\n", offsetof(RSDKFunctionTable, PlayStream));
+    printf("DEBUG: API.GetUserLanguage is: %p\n", API.GetUserLanguage);
+
 
 #if RETRO_USE_MOD_LOADER
     if (info->modTable)
-        memcpy(&Mod, info->modTable, sizeof(ModFunctionTable));
+      memcpy(&Mod, info->modTable, sizeof(ModFunctionTable));
+    printf("DEBUG: Mod.GetModCount is: %p\n", Mod.GetModCount);
 #endif
 
     GameInfo       = info->gameInfo;
     SKU            = info->currentSKU;
+    printf("DEBUG: SKU is: %p\n", SKU);
     SceneInfo      = info->sceneInfo;
     ControllerInfo = info->controllerInfo;
 
@@ -108,6 +128,20 @@ void LinkGameLogicDLL(EngineInfo *info)
     ScreenInfo  = info->screenInfo;
 
     InitGameLogic();
+    printf("DEBUG: RSDK.PlayStream is: %p\n", RSDK.PlayStream);
+    printf("DEBUG: RSDK.AddViewableVariable is: %p\n", RSDK.AddViewableVariable);
+    printf("DEBUG: RSDK.SetChannelAttributes is: %p\n", RSDK.SetChannelAttributes);
+    printf("DEBUG: API.TryAuth is: %p\n", API.TryAuth);
+    printf("DEBUG: API.GetUserAuthStatus is: %p\n", API.GetUserAuthStatus);
+    printf("DEBUG: API.TryInitStorage is: %p\n", API.TryInitStorage);
+    printf("DEBUG: API.GetStorageStatus is: %p\n", API.GetStorageStatus);
+    printf("DEBUG: API.GetSaveStatus is: %p\n", API.GetSaveStatus);
+    printf("DEBUG: sizeof(RSDKFunctionTable) in game: %zu\n", sizeof(RSDKFunctionTable));
+    printf("DEBUG: sizeof(APIFunctionTable) in game: %zu\n", sizeof(APIFunctionTable));
+    printf("DEBUG: offset of PlayStream = %zu (slot %zu)\n", offsetof(RSDKFunctionTable, PlayStream), offsetof(RSDKFunctionTable, PlayStream) / sizeof(void*));
+    printf("DEBUG: offset of AddViewableVariable: %zu\n", offsetof(RSDKFunctionTable, AddViewableVariable));
+    printf("DEBUG: offset of PlayStream: %zu\n", offsetof(RSDKFunctionTable, PlayStream));
+
 }
 #else
 void LinkGameLogicDLL(EngineInfo info)

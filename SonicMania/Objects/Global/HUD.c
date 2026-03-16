@@ -478,7 +478,7 @@ void HUD_Create(void *data)
 #endif
 
 #if MANIA_USE_PLUS
-        RSDK.AddViewableVariable("Show HUD", &self->visible, VIEWVAR_UINT8, false, true);
+        Safe_AddViewableVariable("Show HUD", &self->visible, VIEWVAR_UINT8, false, true);
 #endif
     }
 }

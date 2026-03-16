@@ -47,6 +47,13 @@ void Music_Create(void *data)
 
 void Music_StageLoad(void)
 {
+    if (!RSDK.PlayStream) printf("CRITICAL: RSDK.PlayStream is NULL!\n");
+    if (!globals)
+      printf("CRITICAL: globals is NULL!\n");
+    if (Music == NULL) {
+        printf("CRITICAL ERROR: 'Music' object pointer is NULL!\n");
+        return;
+    }
     // Slot 0: stage music
     Music_SetMusicTrack("Invincible.ogg", TRACK_INVINCIBLE, 139263);
     Music_SetMusicTrack("Sneakers.ogg", TRACK_SNEAKERS, 120960);
@@ -85,7 +92,7 @@ void Music_StageLoad(void)
 
 #if MANIA_USE_PLUS
     if (sku_platform == PLATFORM_DEV)
-        RSDK.AddViewableVariable("Vape Mode", &globals->vapeMode, VIEWVAR_BOOL, false, true);
+        Safe_AddViewableVariable("Vape Mode", &globals->vapeMode, VIEWVAR_BOOL, false, true);
 #endif
 }
 
