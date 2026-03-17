@@ -139,20 +139,37 @@ void StarPost_CheckBonusStageEntry(void)
 {
     RSDK_THIS(StarPost);
 
-    self->starRadius = (MathHelpers_Sin256(self->starAngle) >> 4) + 24;
-    self->starAngle += 4;
+    self->starAngleY += 4;
+    self->starAngleY &= 0x1FF;
+    self->starAngleX += 18;
+    self->starAngleX &= 0x1FF;
 
-    if (self->starTimer < 60)
-        self->starTimer++;
+    if (self->starTimer > 472)
+        --self->starRadius;
+    else if (self->starTimer < 0x80)
+        ++self->starRadius;
+
+    if (++self->starTimer == 600) {
+        self->starTimer    = 0;
+        self->bonusStageID = 0;
+        self->active       = ACTIVE_BOUNDS;
+    }
+
+    self->starAnimator.frameID = (self->starAngleY >> 3) & 3;
+
+    self->hitboxStars.left   = -(self->starRadius >> 2);
+    self->hitboxStars.top    = -48;
+    self->hitboxStars.right  = self->starRadius >> 2;
+    self->hitboxStars.bottom = -40;
 
     if (self->starTimer >= 60) {
         if (!globals->recallEntities) {
-            // Check if Player 1 touches the stars
             if (Player_CheckCollisionTouch(RSDK_GET_ENTITY(SLOT_PLAYER1, Player), self, &self->hitboxStars)) {
                 
                 SaveGame_SaveGameState(); 
                 
-                // --- THE TRUE MEMORY FIX FOR STARPOST ---
+               
+                // Manually fetch the true save file pointer so it doesn't write to NULL
                 SaveRAM *saveRAM = NULL;
                 if (globals->saveSlotID == NO_SAVE_SLOT) {
                     saveRAM = (SaveRAM *)globals->noSaveSlot;
@@ -165,17 +182,30 @@ void StarPost_CheckBonusStageEntry(void)
 #endif
                 }
                 
+                // Imprint the Act ID into the true memory address!
                 if (saveRAM) {
                     saveRAM->storedStageID = SceneInfo->listPos;
-                }
-                // ----------------------------------------
-
+                    
                 RSDK.PlaySfx(StarPost->sfxWarp, false, 0xFE);
                 RSDK.SetEngineState(ENGINESTATE_FROZEN);
-                self->state = StarPost_State_BonusWarp;
-                self->timer = 0;
+
+#if MANIA_USE_PLUS
+                // Properly check if the game mode is Encore
+                if (globals->gameMode == MODE_ENCORE) { 
+                    RSDK.SetScene("Pinball", "");
+                }
+                else {
+#endif
+                    RSDK.SetScene("Blue Spheres", "");
+                    SceneInfo->listPos += globals->blueSpheresID;
+#if MANIA_USE_PLUS
+                }
+#endif
+                Zone_StartFadeOut(10, 0xF0F0F0);
+                Music_Stop();
             }
         }
+    }
     }
 }
 
