@@ -196,12 +196,6 @@ typedef enum {
 // =========================
 
 typedef struct {
-    Vector2 checkpointPos[8]; 
-    uint8 checkpointDir[8];
-    uint16 checkpointID[8];
-    uint8 checkpointMinutes;
-    uint8 checkpointSeconds;
-    uint8 checkpointMilliseconds;
     int32 gameMode;
     int32 playerID; // active character IDs (usually leader & sidekick)
     int32 specialCleared;
@@ -246,6 +240,12 @@ typedef struct {
     int32 restartScore;
     int32 restartScore1UP;
     int32 restartLives[4];
+    Vector2 checkpointPos[4]; 
+    uint8 checkpointDir[4];
+    uint16 checkpointID[4];
+    uint8 checkpointMinutes;
+    uint8 checkpointSeconds;
+    uint8 checkpointMilliseconds;
 #if GAME_VERSION != VER_100
     int32 restartMusicID;
 #endif

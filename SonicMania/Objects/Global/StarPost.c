@@ -17,7 +17,7 @@ void StarPost_Update(void)
     // This ensures we only lock the player when they RESPAWN, not when they hit a new post!
     if (self->id > 0 && globals->checkpointID[0] == self->id && self->state == StarPost_State_Idle) {
         if (SceneInfo->state == ENGINESTATE_REGULAR && self->timer < 30) {
-            for (int32 p = 0; p < PLAYER_COUNT; ++p) {
+            for (int32 p = 0; p < 4; ++p) {
                 EntityPlayer *player = RSDK_GET_ENTITY(p, Player);
                 if (player) {
                     player->position.x = self->position.x;
@@ -86,7 +86,7 @@ void StarPost_Create(void *data)
     RSDK.SetSpriteAnimation(StarPost->aniFrames, 1, &self->ballAnimator, true, 0);
 
     // DEBUG: Print to F12 console to see if IDs are surviving
-    for (int32 p = 0; p < PLAYER_COUNT; ++p) {
+    for (int32 p = 0; p < 4; ++p) {
         if (globals->checkpointID[p] != 0) {
             printf("WASM_DEBUG: Saved ID for Player %d is %d. This StarPost ID is %d\n", p, globals->checkpointID[p], self->id);
             
@@ -153,7 +153,7 @@ void StarPost_DebugSpawn(void)
 }
 void StarPost_ResetStarPosts(void)
 {
-    for (int32 i = 0; i < PLAYER_COUNT; ++i) {
+    for (int32 p = 0; p < 4; ++i) {
         globals->checkpointID[i] = 0;
     }
     globals->checkpointMilliseconds = 0;
