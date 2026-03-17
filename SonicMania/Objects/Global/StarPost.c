@@ -88,7 +88,7 @@ void StarPost_StageLoad(void)
     StarPost->sfxWarp     = RSDK.GetSfx("Global/Warp.wav");
 
     // Only attempt to spawn at checkpoint if we aren't in a special/cutscene state
-    if (SceneInfo->state == SS_NORMAL) {
+    if (SceneInfo->state == ENGINESTATE_REGULAR) {
         for (int32 p = 0; p < PLAYER_COUNT; ++p) {
             // Check globals instead of StarPost statics
             if (globals->checkpointID[p]) {
