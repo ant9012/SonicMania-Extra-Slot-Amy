@@ -13,6 +13,35 @@ void StarPost_Update(void)
 {
     RSDK_THIS(StarPost);
 
+    // Added: self->state == StarPost_State_Idle
+    // This ensures we only lock the player when they RESPAWN, not when they hit a new post!
+    if (self->id > 0 && globals->checkpointID[0] == self->id && self->state == StarPost_State_Idle) {
+        if (SceneInfo->state == ENGINESTATE_REGULAR && self->timer < 30) {
+            for (int32 p = 0; p < PLAYER_COUNT; ++p) {
+                EntityPlayer *player = RSDK_GET_ENTITY(p, Player);
+                if (player) {
+                    player->position.x = self->position.x;
+                    player->position.y = self->position.y;
+                    
+                    // Kill player velocity so they don't fall/slide away instantly
+                    player->velocity.x = 0;
+                    player->velocity.y = 0;
+                    player->groundVel = 0;
+
+                    // --- CAMERA SNAP ADDED HERE ---
+                    // This forces the camera to look at the post instantly, 
+                    // preventing the screen from wildly panning from the start of the level.
+                    if (player->camera) {
+                        player->camera->position.x = self->position.x;
+                        player->camera->position.y = self->position.y;
+                    }
+                    // ------------------------------
+                }
+            }
+            self->timer++;
+        }
+    }
+
     StateMachine_Run(self->state);
 }
 
@@ -47,45 +76,50 @@ void StarPost_Create(void *data)
 {
     RSDK_THIS(StarPost);
 
-    if (globals->gameMode == MODE_TIMEATTACK || (globals->gameMode == MODE_COMPETITION && self->vsRemove)) {
-        destroyEntity(self);
-        return;
-    }
-
-    if (!SceneInfo->inEditor) {
-        self->visible       = true;
-        self->drawGroup     = Zone->objectDrawGroup[0];
-        self->active        = ACTIVE_BOUNDS;
-        self->updateRange.x = TO_FIXED(64);
-        self->updateRange.y = TO_FIXED(64);
-        self->state         = StarPost_State_Idle;
-        self->angle         = 0x100; // Reset to default upright angle (256)
-    }
+    self->visible   = true;
+    self->drawGroup = 2;
+    self->active    = ACTIVE_BOUNDS;
+    self->updateRange.x = 0x400000;
+    self->updateRange.y = 0x400000;
 
     RSDK.SetSpriteAnimation(StarPost->aniFrames, 0, &self->poleAnimator, true, 0);
-    
-    // Check if this specific starpost is the one saved in globals
-    bool32 isSavedPost = false;
-for (int32 p = 0; p < PLAYER_COUNT; ++p) {
-    // Check against self->id instead of entitySlot
-    if (globals->checkpointID[p] == self->id && self->id > 0) {
-        isSavedPost = true;
-        break;
-    }
+    RSDK.SetSpriteAnimation(StarPost->aniFrames, 1, &self->ballAnimator, true, 0);
+
+    // DEBUG: Print to F12 console to see if IDs are surviving
+    for (int32 p = 0; p < PLAYER_COUNT; ++p) {
+        if (globals->checkpointID[p] != 0) {
+            printf("WASM_DEBUG: Saved ID for Player %d is %d. This StarPost ID is %d\n", p, globals->checkpointID[p], self->id);
+            
+            if (globals->checkpointID[p] == self->id && self->id > 0) {
+                printf("WASM_DEBUG: MATCH FOUND! Teleporting Player %d...\n", p);
+                
+                EntityPlayer *player = RSDK_GET_ENTITY(p, Player);
+                if (player) {
+                    // Force the position
+                    player->position.x = self->position.x;
+                    player->position.y = self->position.y;
+                    
+                    // Mark as interacted so it shows the "hit" head
+                    self->interactedPlayers |= (1 << p);
+                    self->state = StarPost_State_Idle;
+                    RSDK.SetSpriteAnimation(StarPost->aniFrames, 2, &self->ballAnimator, true, 0);
+                    self->ballAnimator.speed = 64;
+
+                    // Sync Stage Timer
+                    SceneInfo->minutes      = globals->checkpointMinutes;
+                    SceneInfo->seconds      = globals->checkpointSeconds;
+                    SceneInfo->milliseconds = globals->checkpointMilliseconds;
+                }
+            }
+        }
     }
 
-    if (isSavedPost) {
-        self->interactedPlayers = 0xFF; // Mark as hit
-        RSDK.SetSpriteAnimation(StarPost->aniFrames, 2, &self->ballAnimator, true, 0);
-        self->ballAnimator.speed = 64;
+    if (data) {
+        self->state = (void (*)(void))data;
     }
     else {
-        RSDK.SetSpriteAnimation(StarPost->aniFrames, 1, &self->ballAnimator, true, 0);
+        self->state = StarPost_State_Idle;
     }
-    
-    RSDK.SetSpriteAnimation(StarPost->aniFrames, 3, &self->starAnimator, true, 0);
-    self->ballPos.x = self->position.x;
-    self->ballPos.y = self->position.y - TO_FIXED(24);
 }
 
 void StarPost_StageLoad(void)
@@ -99,28 +133,6 @@ void StarPost_StageLoad(void)
 
     StarPost->sfxStarPost = RSDK.GetSfx("Global/StarPost.wav");
     StarPost->sfxWarp     = RSDK.GetSfx("Global/Warp.wav");
-
-    // Only attempt to spawn at checkpoint if we aren't in a special/cutscene state
-    if (SceneInfo->state == ENGINESTATE_REGULAR) {
-        for (int32 p = 0; p < PLAYER_COUNT; ++p) {
-          // Check globals instead of StarPost statics
-          if (globals->checkpointID[p] > 0) {
-                printf("WASM_DEBUG: Found Checkpoint ID %d for Player %d\n", globals->checkpointID[p], p);
-            if (globals->checkpointID[p]) {
-                EntityPlayer *player = RSDK_GET_ENTITY(p, Player);
-                
-                // Move player to the saved global position
-                player->position.x = globals->checkpointPos[p].x;
-                player->position.y = globals->checkpointPos[p].y;
-                player->direction  = globals->checkpointDir[p];
-                
-                // Sync the stage timer to the checkpoint time stored in globals
-                SceneInfo->minutes      = globals->checkpointMinutes;
-                SceneInfo->seconds      = globals->checkpointSeconds;
-                SceneInfo->milliseconds = globals->checkpointMilliseconds;
-            }
-        }
-    }
     StarPost->interactablePlayers = PLAYER_COUNT;
     StarPost->hitbox.left   = -8;
     StarPost->hitbox.top    = -64;
@@ -183,23 +195,19 @@ void StarPost_CheckBonusStageEntry(void)
                 RSDK.SetEngineState(ENGINESTATE_FROZEN);
 
 #if MANIA_USE_PLUS
-                ProgressRAM *progress = GameProgress_GetProgressRAM();
-                if ((API.CheckDLC(DLC_PLUS) && progress && progress->allGoldMedals) || globals->gameMode == MODE_ENCORE) {
-                    SaveGame_GetSaveRAM()->storedStageID = SceneInfo->listPos;
+                // Properly check if the game mode is Encore
+                if (globals->gameMode == MODE_ENCORE) { 
                     RSDK.SetScene("Pinball", "");
-                    Zone_StartFadeOut(10, 0xF0F0F0);
-                    Music_Stop();
                 }
                 else {
 #endif
-                    SaveGame_GetSaveRAM()->storedStageID = SceneInfo->listPos;
                     RSDK.SetScene("Blue Spheres", "");
                     SceneInfo->listPos += globals->blueSpheresID;
-                    Zone_StartFadeOut(10, 0xF0F0F0);
-                    Music_Stop();
 #if MANIA_USE_PLUS
                 }
 #endif
+                Zone_StartFadeOut(10, 0xF0F0F0);
+                Music_Stop();
             }
         }
     }
@@ -293,7 +301,7 @@ void StarPost_State_Idle(void)
 {
     RSDK_THIS(StarPost);
 
-    if (self->interactedPlayers < StarPost->interactablePlayers)
+    if (self->interactedPlayers < PLAYER_COUNT)
         StarPost_CheckCollisions();
 
     if (self->bonusStageID > 0)
@@ -305,7 +313,7 @@ void StarPost_State_Spinning(void)
 {
     RSDK_THIS(StarPost);
 
-    if (self->interactedPlayers < StarPost->interactablePlayers)
+    if (self->interactedPlayers < PLAYER_COUNT)
         StarPost_CheckCollisions();
 
     self->angle += self->ballSpeed;

@@ -50,10 +50,10 @@ RSDKScreenInfo *ScreenInfo = NULL;
 
 GlobalVariables *globals;
 
-#if RETRO_REV0U
+
 void GlobalVariables_InitCB(GlobalVariables *globals)
 {
-    if (globals->gameMode == 0) {
+    if (globals->gameMode == 0 && globals->saveSlotID == NO_SAVE_SLOT) {
         memset(globals, 0, sizeof(GlobalVariables));
     }
 
@@ -71,7 +71,6 @@ void GlobalVariables_InitCB(GlobalVariables *globals)
     globals->superMusicEnabled = true;
 #endif
 }
-#endif
 
 // -------------------------
 // LINK GAME/MOD LOGIC
