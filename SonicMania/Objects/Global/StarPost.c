@@ -13,7 +13,6 @@ void StarPost_Update(void)
 {
     RSDK_THIS(StarPost);
 
-    // Added: self->state == StarPost_State_Idle
     // This ensures we only lock the player when they RESPAWN, not when they hit a new post!
     if (self->id > 0 && globals->checkpointID[0] == self->id && self->state == StarPost_State_Idle) {
         if (SceneInfo->state == ENGINESTATE_REGULAR && self->timer < 30) {
@@ -28,14 +27,12 @@ void StarPost_Update(void)
                     player->velocity.y = 0;
                     player->groundVel = 0;
 
-                    // --- CAMERA SNAP ADDED HERE ---
                     // This forces the camera to look at the post instantly, 
                     // preventing the screen from wildly panning from the start of the level.
                     if (player->camera) {
                         player->camera->position.x = self->position.x;
                         player->camera->position.y = self->position.y;
                     }
-                    // ------------------------------
                 }
             }
             self->timer++;
@@ -85,40 +82,18 @@ void StarPost_Create(void *data)
     RSDK.SetSpriteAnimation(StarPost->aniFrames, 0, &self->poleAnimator, true, 0);
     RSDK.SetSpriteAnimation(StarPost->aniFrames, 1, &self->ballAnimator, true, 0);
 
-    // DEBUG: Print to F12 console to see if IDs are surviving
-    for (int32 p = 0; p < 4; ++p) {
-        if (globals->checkpointID[p] != 0) {
-            printf("WASM_DEBUG: Saved ID for Player %d is %d. This StarPost ID is %d\n", p, globals->checkpointID[p], self->id);
-            
-            if (globals->checkpointID[p] == self->id && self->id > 0) {
-                printf("WASM_DEBUG: MATCH FOUND! Teleporting Player %d...\n", p);
-                
-                EntityPlayer *player = RSDK_GET_ENTITY(p, Player);
-                if (player) {
-                    // Force the position
-                    player->position.x = self->position.x;
-                    player->position.y = self->position.y;
-                    
-                    // Mark as interacted so it shows the "hit" head
-                    self->interactedPlayers |= (1 << p);
-                    self->state = StarPost_State_Idle;
-                    RSDK.SetSpriteAnimation(StarPost->aniFrames, 2, &self->ballAnimator, true, 0);
-                    self->ballAnimator.speed = 64;
-
-                    // Sync Stage Timer
-                    SceneInfo->minutes      = globals->checkpointMinutes;
-                    SceneInfo->seconds      = globals->checkpointSeconds;
-                    SceneInfo->milliseconds = globals->checkpointMilliseconds;
-                }
-            }
-        }
+    // WASM SAFE: Only check slot 0! No dangerous loops.
+    if (self->id > 0 && globals->checkpointID[0] == self->id) {
+        self->interactedPlayers |= 1; 
+        self->state = StarPost_State_Idle;
+        RSDK.SetSpriteAnimation(StarPost->aniFrames, 2, &self->ballAnimator, true, 0);
+        self->ballAnimator.speed = 64;
+    } else {
+        self->state = StarPost_State_Idle;
     }
 
     if (data) {
         self->state = (void (*)(void))data;
-    }
-    else {
-        self->state = StarPost_State_Idle;
     }
 }
 
@@ -134,10 +109,6 @@ void StarPost_StageLoad(void)
     StarPost->sfxStarPost = RSDK.GetSfx("Global/StarPost.wav");
     StarPost->sfxWarp     = RSDK.GetSfx("Global/Warp.wav");
     StarPost->interactablePlayers = PLAYER_COUNT;
-    StarPost->hitbox.left   = -8;
-    StarPost->hitbox.top    = -64;
-    StarPost->hitbox.right  = 8;
-    StarPost->hitbox.bottom = 0;
 }
 
 void StarPost_DebugDraw(void)
@@ -145,14 +116,16 @@ void StarPost_DebugDraw(void)
     RSDK.SetSpriteAnimation(StarPost->aniFrames, 0, &DebugMode->animator, true, 1);
     RSDK.DrawSprite(&DebugMode->animator, NULL, false);
 }
+
 void StarPost_DebugSpawn(void)
 {
     RSDK_THIS(DebugMode);
-
     CREATE_ENTITY(StarPost, NULL, self->position.x, self->position.y);
 }
+
 void StarPost_ResetStarPosts(void)
 {
+    // WASM SAFE: Array is size 4, so loop max is 4
     for (int32 p = 0; p < 4; ++p) {
         globals->checkpointID[p] = 0;
     }
@@ -160,6 +133,7 @@ void StarPost_ResetStarPosts(void)
     globals->checkpointSeconds      = 0;
     globals->checkpointMinutes      = 0;
 }
+
 void StarPost_CheckBonusStageEntry(void)
 {
     RSDK_THIS(StarPost);
@@ -212,21 +186,26 @@ void StarPost_CheckBonusStageEntry(void)
         }
     }
 }
+
 void StarPost_CheckCollisions(void)
 {
     RSDK_THIS(StarPost);
 
     foreach_active(Player, player)
     {
-      int32 playerID = RSDK.GetEntitySlot(player);
-      int32 safeID = playerID;
-if (safeID >= 4) {
-    safeID = 0; 
-}
+        int32 playerID = RSDK.GetEntitySlot(player);
+        
+        // --- SAFE ID SHIELD FOR EXTRA SLOTS ---
+        int32 safeID = playerID;
+        if (safeID >= 4) {
+            safeID = 0; 
+        }
+
         if (!((1 << playerID) & self->interactedPlayers) && !player->sidekick) {
             if (Player_CheckCollisionTouch(player, self, &StarPost->hitbox)) {
-              self->state = StarPost_State_Spinning;
-              self->active = ACTIVE_NORMAL;
+                self->state = StarPost_State_Spinning;
+                self->active = ACTIVE_NORMAL;
+                
                 if (!TMZ2Setup) {
                     foreach_all(StarPost, starPost)
                     {
@@ -237,18 +216,18 @@ if (safeID >= 4) {
                     }
                 }
 
-                // --- CHANGED TO GLOBALS HERE ---
-                globals->checkpointID[playerID]    = self->id;
-                globals->checkpointPos[playerID].x = self->position.x;
-                globals->checkpointPos[playerID].y = self->position.y;
-                globals->checkpointDir[playerID]   = self->direction;
+                // --- SAVING WITH SAFE ID ---
+                globals->checkpointID[safeID]    = self->id;
+                globals->checkpointPos[safeID].x = self->position.x;
+                globals->checkpointPos[safeID].y = self->position.y;
+                globals->checkpointDir[safeID]   = self->direction;
                 
                 if (globals->gameMode < MODE_TIMEATTACK) {
                     globals->checkpointMilliseconds = SceneInfo->milliseconds;
                     globals->checkpointSeconds      = SceneInfo->seconds;
                     globals->checkpointMinutes      = SceneInfo->minutes;
                 }
-                // -------------------------------
+                // ---------------------------
 
                 int32 playerVelocity = player->onGround ? player->groundVel : player->velocity.x;
                 int32 ballSpeed      = -12 * (playerVelocity >> 17);
@@ -301,6 +280,7 @@ if (safeID >= 4) {
         }
     }
 }
+
 void StarPost_State_Idle(void)
 {
     RSDK_THIS(StarPost);
@@ -313,6 +293,7 @@ void StarPost_State_Idle(void)
 
     RSDK.ProcessAnimation(&self->ballAnimator);
 }
+
 void StarPost_State_Spinning(void)
 {
     RSDK_THIS(StarPost);
