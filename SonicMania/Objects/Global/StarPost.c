@@ -80,81 +80,32 @@ void StarPost_StageLoad(void)
     StarPost->aniFrames = RSDK.LoadSpriteAnimation("Global/StarPost.bin", SCOPE_STAGE);
 
     StarPost->hitbox.left   = -8;
-    StarPost->hitbox.top    = -44;
+    StarPost->hitbox.top    = -64;
     StarPost->hitbox.right  = 8;
-    StarPost->hitbox.bottom = 20;
-
-    StarPost->interactablePlayers = (1 << Player->playerCount) - 1;
-
-    DEBUGMODE_ADD_OBJ(StarPost);
-
-    for (int32 p = 0; p < Player->playerCount; ++p) {
-        if (StarPost->postIDs[p]) {
-            EntityPlayer *player          = RSDK_GET_ENTITY(p, Player);
-            EntityStarPost *savedStarPost = RSDK_GET_ENTITY(StarPost->postIDs[p], StarPost);
-
-            // Disable id-based auto activation in TMZ2 due to its non-linear nature
-            if (!TMZ2Setup) {
-                foreach_all(StarPost, starPost)
-                {
-                    if (starPost->id < savedStarPost->id && !starPost->interactedPlayers) {
-                        starPost->interactedPlayers = StarPost->interactablePlayers;
-                        RSDK.SetSpriteAnimation(StarPost->aniFrames, 2, &starPost->ballAnimator, true, 0);
-                    }
-                }
-            }
-
-            if (!globals->specialRingID) {
-                if (globals->gameMode < MODE_TIMEATTACK) {
-                    int32 ms = SceneInfo->milliseconds;
-                    int32 s  = SceneInfo->seconds;
-                    int32 m  = SceneInfo->minutes;
-                    if (!(ms || s || m) || ms != globals->tempMilliseconds || s != globals->tempSeconds || m != globals->tempMinutes) {
-                        SceneInfo->milliseconds = StarPost->storedMS;
-                        SceneInfo->seconds      = StarPost->storedSeconds;
-                        SceneInfo->minutes      = StarPost->storedMinutes;
-                    }
-                }
-
-                player->position.x = StarPost->playerPositions[p].x;
-                player->position.y = StarPost->playerPositions[p].y + TO_FIXED(16);
-                player->direction  = StarPost->playerDirections[p];
-
-                if (!p) {
-                    EntityPlayer *sidekick = RSDK_GET_ENTITY(SLOT_PLAYER2, Player);
-                    if (globals->gameMode != MODE_COMPETITION) {
-                        sidekick->position.x = player->position.x;
-                        sidekick->position.y = player->position.y;
-                        sidekick->direction  = player->direction;
-                        if (player->direction)
-                            sidekick->position.x += TO_FIXED(16);
-                        else
-                            sidekick->position.x -= TO_FIXED(16);
-
-                        for (int32 i = 0; i < 0x10; ++i) {
-                            Player->leaderPositionBuffer[i].x = player->position.x;
-                            Player->leaderPositionBuffer[i].y = player->position.y;
-                        }
-                    }
-                }
-            }
-            savedStarPost->interactedPlayers = StarPost->interactablePlayers;
-        }
-
-#if MANIA_USE_PLUS
-        if (globals->gameMode == MODE_COMPETITION || globals->gameMode == MODE_ENCORE) {
-#else
-        if (globals->gameMode == MODE_COMPETITION) {
-#endif
-            EntityPlayer *player           = RSDK_GET_ENTITY(p, Player);
-            StarPost->playerPositions[p].x = player->position.x;
-            StarPost->playerPositions[p].y = player->position.y - TO_FIXED(16);
-            StarPost->playerDirections[p]  = player->direction;
-        }
-    }
+    StarPost->hitbox.bottom = 0;
 
     StarPost->sfxStarPost = RSDK.GetSfx("Global/StarPost.wav");
-    StarPost->sfxWarp     = RSDK.GetSfx("Global/SpecialWarp.wav");
+    StarPost->sfxWarp     = RSDK.GetSfx("Global/Warp.wav");
+
+    // Only attempt to spawn at checkpoint if we aren't in a special/cutscene state
+    if (SceneInfo->state == SS_NORMAL) {
+        for (int32 p = 0; p < PLAYER_COUNT; ++p) {
+            // Check globals instead of StarPost statics
+            if (globals->checkpointID[p]) {
+                EntityPlayer *player = RSDK_GET_ENTITY(p, Player);
+                
+                // Move player to the saved global position
+                player->position.x = globals->checkpointPos[p].x;
+                player->position.y = globals->checkpointPos[p].y;
+                player->direction  = globals->checkpointDir[p];
+                
+                // Sync the stage timer to the checkpoint time stored in globals
+                SceneInfo->minutes      = globals->checkpointMinutes;
+                SceneInfo->seconds      = globals->checkpointSeconds;
+                SceneInfo->milliseconds = globals->checkpointMilliseconds;
+            }
+        }
+    }
 }
 
 void StarPost_DebugDraw(void)
@@ -170,10 +121,12 @@ void StarPost_DebugSpawn(void)
 }
 void StarPost_ResetStarPosts(void)
 {
-    for (int32 i = 0; i < Player->playerCount; ++i) StarPost->postIDs[i] = 0;
-    StarPost->storedMS      = 0;
-    StarPost->storedSeconds = 0;
-    StarPost->storedMinutes = 0;
+    for (int32 i = 0; i < PLAYER_COUNT; ++i) {
+        globals->checkpointID[i] = 0;
+    }
+    globals->checkpointMilliseconds = 0;
+    globals->checkpointSeconds      = 0;
+    globals->checkpointMinutes      = 0;
 }
 void StarPost_CheckBonusStageEntry(void)
 {
@@ -251,40 +204,37 @@ void StarPost_CheckCollisions(void)
                     }
                 }
 
-                StarPost->postIDs[playerID]           = SceneInfo->entitySlot;
-                StarPost->playerPositions[playerID].x = self->position.x;
-                StarPost->playerPositions[playerID].y = self->position.y;
-                StarPost->playerDirections[playerID]  = self->direction;
+                // --- CHANGED TO GLOBALS HERE ---
+                globals->checkpointID[playerID]    = SceneInfo->entitySlot;
+                globals->checkpointPos[playerID].x = self->position.x;
+                globals->checkpointPos[playerID].y = self->position.y;
+                globals->checkpointDir[playerID]   = self->direction;
+                
                 if (globals->gameMode < MODE_TIMEATTACK) {
-                    StarPost->storedMS      = SceneInfo->milliseconds;
-                    StarPost->storedSeconds = SceneInfo->seconds;
-                    StarPost->storedMinutes = SceneInfo->minutes;
+                    globals->checkpointMilliseconds = SceneInfo->milliseconds;
+                    globals->checkpointSeconds      = SceneInfo->seconds;
+                    globals->checkpointMinutes      = SceneInfo->minutes;
                 }
+                // -------------------------------
 
                 int32 playerVelocity = player->onGround ? player->groundVel : player->velocity.x;
                 int32 ballSpeed      = -12 * (playerVelocity >> 17);
 
-                if (ballSpeed >= 0)
-                    ballSpeed += 32;
-                else
-                    ballSpeed -= 32;
+                if (ballSpeed >= 0) ballSpeed += 32;
+                else ballSpeed -= 32;
 
                 if (!self->ballSpeed) {
                     self->ballSpeed = ballSpeed;
                 }
                 else if (self->ballSpeed <= 0) {
-                    if (ballSpeed < self->ballSpeed) {
-                        self->ballSpeed = ballSpeed;
-                    }
+                    if (ballSpeed < self->ballSpeed) self->ballSpeed = ballSpeed;
                     else if (ballSpeed > 0) {
                         ballSpeed += self->ballSpeed;
                         self->ballSpeed = ballSpeed;
                     }
                 }
                 else {
-                    if (ballSpeed > self->ballSpeed) {
-                        self->ballSpeed = ballSpeed;
-                    }
+                    if (ballSpeed > self->ballSpeed) self->ballSpeed = ballSpeed;
                     else if (ballSpeed < 0) {
                         ballSpeed += self->ballSpeed;
                         self->ballSpeed = ballSpeed;
@@ -295,17 +245,13 @@ void StarPost_CheckCollisions(void)
                 if (globals->gameMode < MODE_TIMEATTACK) {
                     int32 quota = 25;
 #if MANIA_USE_PLUS
-                    if (globals->gameMode == MODE_ENCORE)
-                        quota = 50;
+                    if (globals->gameMode == MODE_ENCORE) quota = 50;
 #endif
-
                     if (player->rings >= quota) {
                         self->starTimer  = 0;
                         self->starAngleY = 0;
                         self->starAngleX = 0;
                         self->starRadius = 0;
-                        // This is the calculation for the bonus stages from sonic 3
-                        // I mean it works, sure but it's just more proof this was prolly based off S3 '14
                         self->bonusStageID = (player->rings - 20) % 3 + 1;
                     }
                 }

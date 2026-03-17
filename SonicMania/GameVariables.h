@@ -240,6 +240,12 @@ typedef struct {
     int32 restartScore;
     int32 restartScore1UP;
     int32 restartLives[4];
+    Vector2 checkpointPos[PLAYER_COUNT];
+    uint8 checkpointDir[PLAYER_COUNT];
+    uint16 checkpointID[PLAYER_COUNT];
+    uint8 checkpointMinutes;
+    uint8 checkpointSeconds;
+    uint8 checkpointMilliseconds;
 #if GAME_VERSION != VER_100
     int32 restartMusicID;
 #endif
