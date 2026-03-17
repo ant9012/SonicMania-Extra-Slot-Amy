@@ -62,13 +62,18 @@ void StarPost_Create(void *data)
         }
 
         RSDK.SetSpriteAnimation(StarPost->aniFrames, 0, &self->poleAnimator, true, 0);
-        if (self->interactedPlayers) {
-            RSDK.SetSpriteAnimation(StarPost->aniFrames, 2, &self->ballAnimator, true, 0);
-            self->ballAnimator.speed = 64;
+        bool32 hasInteracted = false;
+        for (int32 p = 0; p < PLAYER_COUNT; ++p) {
+        if (globals->checkpointID[p] == SceneInfo->entitySlot) {
+        hasInteracted = true;
+        break;
         }
-        else {
-            RSDK.SetSpriteAnimation(StarPost->aniFrames, 1, &self->ballAnimator, true, 0);
         }
+        if (hasInteracted) {
+    self->interactedPlayers = 0xFF; // Mark as interacted for all
+    RSDK.SetSpriteAnimation(StarPost->aniFrames, 2, &self->ballAnimator, true, 0);
+    self->ballAnimator.speed = 64;
+    }
         RSDK.SetSpriteAnimation(StarPost->aniFrames, 3, &self->starAnimator, true, 0);
         self->ballPos.x = self->position.x;
         self->ballPos.y = self->position.y - TO_FIXED(24);
@@ -106,6 +111,7 @@ void StarPost_StageLoad(void)
             }
         }
     }
+    StarPost->interactablePlayers = PLAYER_COUNT;
 }
 
 void StarPost_DebugDraw(void)
@@ -193,7 +199,8 @@ void StarPost_CheckCollisions(void)
         int32 playerID = RSDK.GetEntitySlot(player);
         if (!((1 << playerID) & self->interactedPlayers) && !player->sidekick) {
             if (Player_CheckCollisionTouch(player, self, &StarPost->hitbox)) {
-                self->state = StarPost_State_Spinning;
+              self->state = StarPost_State_Spinning;
+              self->active = ACTIVE_NORMAL;
                 if (!TMZ2Setup) {
                     foreach_all(StarPost, starPost)
                     {
