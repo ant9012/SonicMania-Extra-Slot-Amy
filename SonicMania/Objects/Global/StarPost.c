@@ -9,6 +9,8 @@
 
 ObjectStarPost *StarPost;
 
+int32 StarPost_stashedCheckpoint = 0;
+
 void StarPost_Update(void)
 {
     RSDK_THIS(StarPost);
@@ -59,6 +61,11 @@ void StarPost_Create(void *data)
     RSDK.SetSpriteAnimation(StarPost->aniFrames, 0, &self->poleAnimator, true, 0);
     RSDK.SetSpriteAnimation(StarPost->aniFrames, 1, &self->ballAnimator, true, 0);
     RSDK.SetSpriteAnimation(StarPost->aniFrames, 3, &self->starAnimator, true, 0);
+
+    if (globals->blueSpheresInit && StarPost_stashedCheckpoint > 0) {
+        globals->checkpointID[0] = StarPost_stashedCheckpoint;
+        StarPost_stashedCheckpoint = 0; // Empty it out so it doesn't trigger later
+    }
 
     // WASM SAFE: Only check slot 0!
     if (self->id > 0 && globals->checkpointID[0] == self->id) {
@@ -166,10 +173,11 @@ void StarPost_CheckBonusStageEntry(void)
         if (!globals->recallEntities) {
             if (Player_CheckCollisionTouch(RSDK_GET_ENTITY(SLOT_PLAYER1, Player), self, &self->hitboxStars)) {
                 
-                SaveGame_SaveGameState(); 
+                // 1. Imprint current rings, shields, and checkpoint ID into RAM
+                SaveGame_SavePlayerState();
+                StarPost_stashedCheckpoint = globals->checkpointID[0];
                 
-               
-                // Manually fetch the true save file pointer so it doesn't write to NULL
+                // 2. Fetch the true save file pointer
                 SaveRAM *saveRAM = NULL;
                 if (globals->saveSlotID == NO_SAVE_SLOT) {
                     saveRAM = (SaveRAM *)globals->noSaveSlot;
@@ -182,15 +190,19 @@ void StarPost_CheckBonusStageEntry(void)
 #endif
                 }
                 
-                // Imprint the Act ID into the true memory address!
+                // 3. Set the Act ID so Blue Spheres knows exactly which Act to return to!
                 if (saveRAM) {
                     saveRAM->storedStageID = SceneInfo->listPos;
-                    
+                }
+
+                // 4. Flush the updated RAM to the physical save file!
+                // Without this, the Act reloads from disk and overwrites your checkpoint with 0!
+                SaveGame_SaveGameState(); 
+                
                 RSDK.PlaySfx(StarPost->sfxWarp, false, 0xFE);
                 RSDK.SetEngineState(ENGINESTATE_FROZEN);
 
 #if MANIA_USE_PLUS
-                // Properly check if the game mode is Encore
                 if (globals->gameMode == MODE_ENCORE) { 
                     RSDK.SetScene("Pinball", "");
                 }
@@ -205,7 +217,6 @@ void StarPost_CheckBonusStageEntry(void)
                 Music_Stop();
             }
         }
-    }
     }
 }
 
