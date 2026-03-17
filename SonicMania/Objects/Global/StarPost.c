@@ -12,33 +12,6 @@ ObjectStarPost *StarPost;
 void StarPost_Update(void)
 {
     RSDK_THIS(StarPost);
-
-    // This ensures we only lock the player when they RESPAWN, not when they hit a new post!
-    if (self->id > 0 && globals->checkpointID[0] == self->id && self->state == StarPost_State_Idle) {
-        if (SceneInfo->state == ENGINESTATE_REGULAR && self->timer < 30) {
-            for (int32 p = 0; p < 4; ++p) {
-                EntityPlayer *player = RSDK_GET_ENTITY(p, Player);
-                if (player) {
-                    player->position.x = self->position.x;
-                    player->position.y = self->position.y;
-                    
-                    // Kill player velocity so they don't fall/slide away instantly
-                    player->velocity.x = 0;
-                    player->velocity.y = 0;
-                    player->groundVel = 0;
-
-                    // This forces the camera to look at the post instantly, 
-                    // preventing the screen from wildly panning from the start of the level.
-                    if (player->camera) {
-                        player->camera->position.x = self->position.x;
-                        player->camera->position.y = self->position.y;
-                    }
-                }
-            }
-            self->timer++;
-        }
-    }
-
     StateMachine_Run(self->state);
 }
 
@@ -79,15 +52,39 @@ void StarPost_Create(void *data)
     self->updateRange.x = 0x400000;
     self->updateRange.y = 0x400000;
 
+    // FIX: Set default angle so it points straight up! 
+    // Without this, it defaults to 0 (sideways/mid-animation)
+    self->angle = 0x100;
+
     RSDK.SetSpriteAnimation(StarPost->aniFrames, 0, &self->poleAnimator, true, 0);
     RSDK.SetSpriteAnimation(StarPost->aniFrames, 1, &self->ballAnimator, true, 0);
 
-    // WASM SAFE: Only check slot 0! No dangerous loops.
+    // WASM SAFE: Only check slot 0!
     if (self->id > 0 && globals->checkpointID[0] == self->id) {
         self->interactedPlayers |= 1; 
         self->state = StarPost_State_Idle;
         RSDK.SetSpriteAnimation(StarPost->aniFrames, 2, &self->ballAnimator, true, 0);
         self->ballAnimator.speed = 64;
+
+        // FIX: Teleport the player ONLY ONCE when the post loads (Respawning)
+        EntityPlayer *player = RSDK_GET_ENTITY(SLOT_PLAYER1, Player);
+        if (player) {
+            player->position.x = self->position.x;
+            player->position.y = self->position.y;
+            player->velocity.x = 0;
+            player->velocity.y = 0;
+            player->groundVel  = 0;
+
+            if (player->camera) {
+                player->camera->position.x = self->position.x;
+                player->camera->position.y = self->position.y;
+            }
+
+            // Sync Stage Timer
+            SceneInfo->minutes      = globals->checkpointMinutes;
+            SceneInfo->seconds      = globals->checkpointSeconds;
+            SceneInfo->milliseconds = globals->checkpointMilliseconds;
+        }
     } else {
         self->state = StarPost_State_Idle;
     }
