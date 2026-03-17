@@ -108,9 +108,9 @@ jobs:
           name: WASM-Game-wasm
           path: |
             build/Game.wasm
-            build/Game.js # Sometimes Emscripten spits out a companion JS file, good to grab just in case!
-    
-    publish-nightly:
+            build/Game.js # Sometimes Emscripten spits out a companion JS file, good to grab just in case!    
+  
+  publish-nightly:
       name: Publish Nightly Release
       # This tells GitHub to wait until all 4 builds succeed before trying to publish
       needs: [build-windows, build-linux, build-switch, build-wasm]
@@ -127,7 +127,7 @@ jobs:
         - name: Download all build artifacts
           uses: actions/download-artifact@v4
           with:
-          path: artifacts
+            path: artifacts
 
       
         - name: Zip the Switch Build
