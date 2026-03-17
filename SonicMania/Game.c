@@ -83,6 +83,9 @@ void InitModAPI(void);
 #if MANIA_USE_PLUS
 void LinkGameLogicDLL(EngineInfo *info)
 {
+    static bool32 logicLinked = false;
+    if (logicLinked) return;
+    logicLinked = true;
   printf("DEBUG: LinkGameLogicDLL was called!\n");
   printf("DEBUG: Info Pointer: %p\n", info);
     memset(&API, 0, sizeof(APIFunctionTable));

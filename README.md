@@ -45,7 +45,7 @@ To install this mod, you need to build this project into a Game.dll. Refer to [t
 After building, put this in the same directory as your RSDKv5U.exe and make sure it is named Game.dll. Also make sure to enable required assets mod, (linked above) or else the mod will not function properly.
 More in-depth installation instructions can be found [here](https://gamebanana.com/wips/50006).
 
-## Installation for other platforms (Linux, MacOS, etc.)
+## Installation for other platforms (Linux, Switch, etc.)
 
 Make sure all packages are installed for your specific platform here:
 
@@ -89,12 +89,6 @@ Install [CMake](https://cmake.org/download/)
 - **apt (Debian/Ubuntu):** `sudo apt install build-essential cmake libglew-dev libglfw3-dev libtheora-dev`
 - **rpm (Fedora):** `sudo dnf install make cmake gcc glew-devel glfw-devel libtheora-devel zlib-devel`
 - **xbps (Void):** `sudo xbps-install make cmake gcc pkg-config glew-devel glfw-devel libtheora-devel zlib-devel`
-
-### Switch
-[Setup devKitPro](https://devkitpro.org/wiki/Getting_Started), then run the following:
-- `(dkp-)pacman -Syuu switch-dev switch-libogg switch-libtheora switch-sdl2 switch-glad`
-
-Finally, follow the compilation steps below using `-DCMAKE_TOOLCHAIN_FILE=/opt/devkitpro/cmake/Switch.cmake` as arguments for `cmake -B build`.
 
 ### Compiling/Building the mod
 
