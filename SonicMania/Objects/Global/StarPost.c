@@ -49,35 +49,42 @@ void StarPost_Create(void *data)
 
     if (globals->gameMode == MODE_TIMEATTACK || (globals->gameMode == MODE_COMPETITION && self->vsRemove)) {
         destroyEntity(self);
+        return;
+    }
+
+    if (!SceneInfo->inEditor) {
+        self->visible       = true;
+        self->drawGroup     = Zone->objectDrawGroup[0];
+        self->active        = ACTIVE_BOUNDS;
+        self->updateRange.x = TO_FIXED(64);
+        self->updateRange.y = TO_FIXED(64);
+        self->state         = StarPost_State_Idle;
+        self->angle         = 0x100; // Reset to default upright angle (256)
+    }
+
+    RSDK.SetSpriteAnimation(StarPost->aniFrames, 0, &self->poleAnimator, true, 0);
+    
+    // Check if this specific starpost is the one saved in globals
+    bool32 isSavedPost = false;
+    for (int32 p = 0; p < PLAYER_COUNT; ++p) {
+        if (globals->checkpointID[p] == SceneInfo->entitySlot) {
+            isSavedPost = true;
+            break;
+        }
+    }
+
+    if (isSavedPost) {
+        self->interactedPlayers = 0xFF; // Mark as hit
+        RSDK.SetSpriteAnimation(StarPost->aniFrames, 2, &self->ballAnimator, true, 0);
+        self->ballAnimator.speed = 64;
     }
     else {
-        if (!SceneInfo->inEditor) {
-            self->visible       = true;
-            self->drawGroup     = Zone->objectDrawGroup[0];
-            self->active        = ACTIVE_BOUNDS;
-            self->updateRange.x = TO_FIXED(64);
-            self->updateRange.y = TO_FIXED(64);
-            self->state         = StarPost_State_Idle;
-            self->angle         = 256;
-        }
-
-        RSDK.SetSpriteAnimation(StarPost->aniFrames, 0, &self->poleAnimator, true, 0);
-        bool32 hasInteracted = false;
-        for (int32 p = 0; p < PLAYER_COUNT; ++p) {
-        if (globals->checkpointID[p] == SceneInfo->entitySlot) {
-        hasInteracted = true;
-        break;
-        }
-        }
-        if (hasInteracted) {
-    self->interactedPlayers = 0xFF; // Mark as interacted for all
-    RSDK.SetSpriteAnimation(StarPost->aniFrames, 2, &self->ballAnimator, true, 0);
-    self->ballAnimator.speed = 64;
+        RSDK.SetSpriteAnimation(StarPost->aniFrames, 1, &self->ballAnimator, true, 0);
     }
-        RSDK.SetSpriteAnimation(StarPost->aniFrames, 3, &self->starAnimator, true, 0);
-        self->ballPos.x = self->position.x;
-        self->ballPos.y = self->position.y - TO_FIXED(24);
-    }
+    
+    RSDK.SetSpriteAnimation(StarPost->aniFrames, 3, &self->starAnimator, true, 0);
+    self->ballPos.x = self->position.x;
+    self->ballPos.y = self->position.y - TO_FIXED(24);
 }
 
 void StarPost_StageLoad(void)
@@ -112,6 +119,10 @@ void StarPost_StageLoad(void)
         }
     }
     StarPost->interactablePlayers = PLAYER_COUNT;
+    StarPost->hitbox.left   = -8;
+    StarPost->hitbox.top    = -64;
+    StarPost->hitbox.right  = 8;
+    StarPost->hitbox.bottom = 0;
 }
 
 void StarPost_DebugDraw(void)
