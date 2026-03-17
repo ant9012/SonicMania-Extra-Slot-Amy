@@ -58,6 +58,7 @@ void StarPost_Create(void *data)
 
     RSDK.SetSpriteAnimation(StarPost->aniFrames, 0, &self->poleAnimator, true, 0);
     RSDK.SetSpriteAnimation(StarPost->aniFrames, 1, &self->ballAnimator, true, 0);
+    RSDK.SetSpriteAnimation(StarPost->aniFrames, 3, &self->starAnimator, true, 0);
 
     // WASM SAFE: Only check slot 0!
     if (self->id > 0 && globals->checkpointID[0] == self->id) {

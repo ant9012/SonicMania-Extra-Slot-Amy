@@ -95,7 +95,7 @@ Install [CMake](https://cmake.org/download/)
 Run these at the root of the repo:
 
 ```
-emcmake -B build
+emcmake cmake -B build
 cmake --build build
 ```
 
