@@ -165,7 +165,27 @@ void StarPost_CheckBonusStageEntry(void)
     if (self->starTimer >= 60) {
         if (!globals->recallEntities) {
             if (Player_CheckCollisionTouch(RSDK_GET_ENTITY(SLOT_PLAYER1, Player), self, &self->hitboxStars)) {
-                SaveGame_SaveGameState();
+                
+                SaveGame_SaveGameState(); 
+                
+               
+                // Manually fetch the true save file pointer so it doesn't write to NULL
+                SaveRAM *saveRAM = NULL;
+                if (globals->saveSlotID == NO_SAVE_SLOT) {
+                    saveRAM = (SaveRAM *)globals->noSaveSlot;
+                }
+                else {
+#if MANIA_USE_PLUS
+                    saveRAM = (SaveRAM *)SaveGame_GetDataPtr(globals->saveSlotID, globals->gameMode == MODE_ENCORE);
+#else
+                    saveRAM = (SaveRAM *)SaveGame_GetDataPtr(globals->saveSlotID);
+#endif
+                }
+                
+                // Imprint the Act ID into the true memory address!
+                if (saveRAM) {
+                    saveRAM->storedStageID = SceneInfo->listPos;
+                    
                 RSDK.PlaySfx(StarPost->sfxWarp, false, 0xFE);
                 RSDK.SetEngineState(ENGINESTATE_FROZEN);
 
