@@ -198,8 +198,22 @@ void StarPost_CheckCollisions(void)
             safeID = 0; 
         }
 
+        // --- ANTI-TUNNELING HITBOX ---
+        // Stretch the hitbox horizontally based on player speed 
+        // so they don't skip over it entirely in a single frame!
+        Hitbox touchBox = StarPost->hitbox;
+        int32 speedX = (player->onGround ? player->groundVel : player->velocity.x) >> 16;
+        
+        if (speedX < 0) {
+            touchBox.left += speedX;  // Expands the left side when moving left
+        } else if (speedX > 0) {
+            touchBox.right += speedX; // Expands the right side when moving right
+        }
+
         if (!((1 << playerID) & self->interactedPlayers) && !player->sidekick) {
-            if (Player_CheckCollisionTouch(player, self, &StarPost->hitbox)) {
+            
+            // MAKE SURE TO USE '&touchBox' HERE INSTEAD OF '&StarPost->hitbox'
+            if (Player_CheckCollisionTouch(player, self, &touchBox)) {
                 self->state = StarPost_State_Spinning;
                 self->active = ACTIVE_NORMAL;
                 
