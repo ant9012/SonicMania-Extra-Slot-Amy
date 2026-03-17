@@ -165,7 +165,7 @@ void StarPost_CheckBonusStageEntry(void)
     if (self->starTimer >= 60) {
         if (!globals->recallEntities) {
             if (Player_CheckCollisionTouch(RSDK_GET_ENTITY(SLOT_PLAYER1, Player), self, &self->hitboxStars)) {
-                SaveGame_SaveGameState();
+                SaveGame_SavePlayerState();
                 RSDK.PlaySfx(StarPost->sfxWarp, false, 0xFE);
                 RSDK.SetEngineState(ENGINESTATE_FROZEN);
 
