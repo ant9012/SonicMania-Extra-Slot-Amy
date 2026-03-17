@@ -240,7 +240,8 @@ void BSS_Message_State_LoadPrevScene(void)
 #endif
             RSDK.SetScene("Mania Mode", "");
 
-        SceneInfo->listPos = saveRAM->storedStageID;
+        SaveRAM *saveRAM = SaveGame_GetSaveRAM();
+        saveRAM->storedStageID = SceneInfo->listPos;
         RSDK.LoadScene();
         self->state = StateMachine_None;
     }
