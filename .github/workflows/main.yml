@@ -25,7 +25,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Windows-Game-DLL
-          path: build/Game.dll # Adjust path if CMake outputs to build/Release/Game.dll
+          path: build/Release/Game.dll # Adjust path if CMake outputs to build/Release/Game.dll
 
   build-linux:
     name: Build for Linux
