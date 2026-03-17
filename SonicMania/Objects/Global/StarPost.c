@@ -111,11 +111,11 @@ void StarPost_StageLoad(void)
     StarPost->hitbox.left   = -8;
     StarPost->hitbox.top    = -52; 
     StarPost->hitbox.right  = 8;
-    StarPost->hitbox.bottom = 52;  // This was 0! It was letting you roll right under it!
+    StarPost->hitbox.bottom = 52;  
     // -------------------------
 
     StarPost->sfxStarPost = RSDK.GetSfx("Global/StarPost.wav");
-    StarPost->sfxWarp     = RSDK.GetSfx("Global/Warp.wav");
+    StarPost->sfxWarp     = RSDK.GetSfx("Global/SpecialWarp.wav");
     StarPost->interactablePlayers = PLAYER_COUNT;
 }
 
@@ -173,11 +173,18 @@ void StarPost_CheckBonusStageEntry(void)
         if (!globals->recallEntities) {
             if (Player_CheckCollisionTouch(RSDK_GET_ENTITY(SLOT_PLAYER1, Player), self, &self->hitboxStars)) {
                 
-                // 1. Imprint current rings, shields, and checkpoint ID into RAM
-                SaveGame_SavePlayerState();
+                // --- 1. PACK THE BACKPACK ---
+                SaveGame_SavePlayerState(); // Ensure rings/shields are updated
                 StarPost_stashedCheckpoint = globals->checkpointID[0];
+                // ----------------------------
+
+                SaveGame_SaveGameState();
                 
-                // 2. Fetch the true save file pointer
+                // Keep the exact vanilla audio and freeze sequence!
+                RSDK.PlaySfx(StarPost->sfxWarp, false, 0xFE);
+                RSDK.SetEngineState(ENGINESTATE_FROZEN);
+
+                // --- 2. CRASH-PROOF SAVERAM FETCH ---
                 SaveRAM *saveRAM = NULL;
                 if (globals->saveSlotID == NO_SAVE_SLOT) {
                     saveRAM = (SaveRAM *)globals->noSaveSlot;
@@ -189,32 +196,26 @@ void StarPost_CheckBonusStageEntry(void)
                     saveRAM = (SaveRAM *)SaveGame_GetDataPtr(globals->saveSlotID);
 #endif
                 }
-                
-                // 3. Set the Act ID so Blue Spheres knows exactly which Act to return to!
-                if (saveRAM) {
-                    saveRAM->storedStageID = SceneInfo->listPos;
-                }
-
-                // 4. Flush the updated RAM to the physical save file!
-                // Without this, the Act reloads from disk and overwrites your checkpoint with 0!
-                SaveGame_SaveGameState(); 
-                
-                RSDK.PlaySfx(StarPost->sfxWarp, false, 0xFE);
-                RSDK.SetEngineState(ENGINESTATE_FROZEN);
+                // ------------------------------------
 
 #if MANIA_USE_PLUS
-                if (globals->gameMode == MODE_ENCORE) { 
+                ProgressRAM *progress = GameProgress_GetProgressRAM();
+                if ((API.CheckDLC(DLC_PLUS) && progress && progress->allGoldMedals) || globals->gameMode == MODE_ENCORE) {
+                    if (saveRAM) saveRAM->storedStageID = SceneInfo->listPos;
                     RSDK.SetScene("Pinball", "");
+                    Zone_StartFadeOut(10, 0xF0F0F0);
+                    Music_Stop();
                 }
                 else {
 #endif
+                    if (saveRAM) saveRAM->storedStageID = SceneInfo->listPos;
                     RSDK.SetScene("Blue Spheres", "");
                     SceneInfo->listPos += globals->blueSpheresID;
+                    Zone_StartFadeOut(10, 0xF0F0F0);
+                    Music_Stop();
 #if MANIA_USE_PLUS
                 }
 #endif
-                Zone_StartFadeOut(10, 0xF0F0F0);
-                Music_Stop();
             }
         }
     }
