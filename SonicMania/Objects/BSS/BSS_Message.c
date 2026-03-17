@@ -232,7 +232,22 @@ void BSS_Message_State_LoadPrevScene(void)
         globals->blueSpheresInit = true;
         GameProgress_ShuffleBSSID();
 
-        SaveRAM *saveRAM = SaveGame_GetSaveRAM();
+        // --- THE NULL POINTER FIX ---
+        // Because the SaveGame object is not active in Bonus Stages,
+        // SaveGame_GetSaveRAM() returns NULL! We must fetch the pointer manually.
+        SaveRAM *saveRAM = NULL;
+        if (globals->saveSlotID == NO_SAVE_SLOT) {
+            saveRAM = (SaveRAM *)globals->noSaveSlot;
+        }
+        else {
+#if MANIA_USE_PLUS
+            saveRAM = (SaveRAM *)SaveGame_GetDataPtr(globals->saveSlotID, globals->gameMode == MODE_ENCORE);
+#else
+            saveRAM = (SaveRAM *)SaveGame_GetDataPtr(globals->saveSlotID);
+#endif
+        }
+        // ----------------------------
+
 #if MANIA_USE_PLUS
         if (globals->gameMode == MODE_ENCORE)
             RSDK.SetScene("Encore Mode", "");
@@ -240,7 +255,8 @@ void BSS_Message_State_LoadPrevScene(void)
 #endif
             RSDK.SetScene("Mania Mode", "");
 
-        saveRAM->storedStageID = SceneInfo->listPos;
+        // Now saveRAM actually exists, and this will grab your Act 2 ID instead of 0!
+        SceneInfo->listPos = saveRAM->storedStageID;
         RSDK.LoadScene();
         self->state = StateMachine_None;
     }
