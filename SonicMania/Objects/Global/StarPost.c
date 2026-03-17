@@ -66,11 +66,12 @@ void StarPost_Create(void *data)
     
     // Check if this specific starpost is the one saved in globals
     bool32 isSavedPost = false;
-    for (int32 p = 0; p < PLAYER_COUNT; ++p) {
-        if (globals->checkpointID[p] == SceneInfo->entitySlot) {
-            isSavedPost = true;
-            break;
-        }
+for (int32 p = 0; p < PLAYER_COUNT; ++p) {
+    // Check against self->id instead of entitySlot
+    if (globals->checkpointID[p] == self->id && self->id > 0) {
+        isSavedPost = true;
+        break;
+    }
     }
 
     if (isSavedPost) {
@@ -102,7 +103,9 @@ void StarPost_StageLoad(void)
     // Only attempt to spawn at checkpoint if we aren't in a special/cutscene state
     if (SceneInfo->state == ENGINESTATE_REGULAR) {
         for (int32 p = 0; p < PLAYER_COUNT; ++p) {
-            // Check globals instead of StarPost statics
+          // Check globals instead of StarPost statics
+          if (globals->checkpointID[p] > 0) {
+                printf("WASM_DEBUG: Found Checkpoint ID %d for Player %d\n", globals->checkpointID[p], p);
             if (globals->checkpointID[p]) {
                 EntityPlayer *player = RSDK_GET_ENTITY(p, Player);
                 
@@ -223,7 +226,7 @@ void StarPost_CheckCollisions(void)
                 }
 
                 // --- CHANGED TO GLOBALS HERE ---
-                globals->checkpointID[playerID]    = SceneInfo->entitySlot;
+                globals->checkpointID[playerID]    = self->id;
                 globals->checkpointPos[playerID].x = self->position.x;
                 globals->checkpointPos[playerID].y = self->position.y;
                 globals->checkpointDir[playerID]   = self->direction;
