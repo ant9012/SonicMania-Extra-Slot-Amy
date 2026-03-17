@@ -153,8 +153,8 @@ void StarPost_DebugSpawn(void)
 }
 void StarPost_ResetStarPosts(void)
 {
-    for (int32 p = 0; p < 4; ++i) {
-        globals->checkpointID[i] = 0;
+    for (int32 p = 0; p < 4; ++p) {
+        globals->checkpointID[p] = 0;
     }
     globals->checkpointMilliseconds = 0;
     globals->checkpointSeconds      = 0;
