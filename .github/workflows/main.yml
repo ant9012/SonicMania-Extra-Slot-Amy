@@ -109,3 +109,43 @@ jobs:
           path: |
             build/Game.wasm
             build/Game.js # Sometimes Emscripten spits out a companion JS file, good to grab just in case!
+    publish-nightly:
+    name: Publish Nightly Release
+    # This tells GitHub to wait until all 4 builds succeed before trying to publish
+    needs: [build-windows, build-linux, build-switch, build-wasm]
+    runs-on: ubuntu-latest
+    
+    # CRITICAL: We only want to publish when code is merged to main, NOT on Pull Requests!
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    
+    # Grants the action permission to create a release on your repository
+    permissions:
+      contents: write 
+
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Zip the Switch Build
+        # Since the Switch output is a folder, we should zip it so it's easy to download
+        run: |
+          cd artifacts/Switch-Build
+          zip -r ../../Extra-Slot-Amy-Switch.zip .
+          cd ../..
+
+      - name: Update Nightly Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nightly
+          name: "Nightly Build"
+          body: "Automated rolling release from the latest commit."
+          prerelease: true
+          # This overwrites the old nightly release rather than making 100s of them
+          make_latest: true 
+          files: |
+            artifacts/Windows-Game-DLL/Game.dll
+            artifacts/Linux-libGame-so/libGame.so
+            artifacts/WASM-Game-wasm/Game.wasm
+            Extra-Slot-Amy-Switch.zip
