@@ -93,18 +93,29 @@ void SaveGame_LoadSaveData(void)
     if (globals->recallEntities) {
         if (SceneInfo->activeCategory < 3) {
             
-            // --- EDIT 1: THE RESTORE BLOCK ---
+            // --- RESTORE BLOCK ---
             for (int32 p = 0; p < 4; ++p) { //I don't think this should be 5
+                // Feed the original StarPost object so the base game knows which Act to load!
+                StarPost->playerPositions[p].x = globals->restartPos[(p * 2) + 0];
+                StarPost->playerPositions[p].y = globals->restartPos[(p * 2) + 1];
+                StarPost->playerDirections[p]  = globals->restartDir[p];
+                StarPost->postIDs[p]           = globals->restartSlot[p];
+                
+                // Feed the custom globals so Extra Slot characters can respawn!
                 globals->checkpointPos[p].x = globals->restartPos[(p * 2) + 0];
                 globals->checkpointPos[p].y = globals->restartPos[(p * 2) + 1];
                 globals->checkpointDir[p]   = globals->restartDir[p];
                 globals->checkpointID[p]    = globals->restartSlot[p];
             }
 
+            StarPost->storedMS      = globals->restartMilliseconds;
+            StarPost->storedSeconds = globals->restartSeconds;
+            StarPost->storedMinutes = globals->restartMinutes;
+
             globals->checkpointMilliseconds = globals->restartMilliseconds;
             globals->checkpointSeconds      = globals->restartSeconds;
             globals->checkpointMinutes      = globals->restartMinutes;
-            // ---------------------------------
+            // ---------------------
 
             SceneInfo->milliseconds = globals->tempMilliseconds;
             SceneInfo->seconds      = globals->tempSeconds;
@@ -152,23 +163,35 @@ void SaveGame_LoadSaveData(void)
         }
     }
     else if (!Zone || Zone->listPos != Zone->prevListPos) {
-        // --- EDIT 2: THE RESET BLOCK ---
-        // Clear the new arrays when a fresh zone loads
-        for (int32 p = 0; p < 4; ++p) {
-            globals->checkpointPos[p].x = 0;
-            globals->checkpointPos[p].y = 0;
-            globals->checkpointDir[p]   = FLIP_NONE;
-            globals->checkpointID[p]    = 0;
-        }
+        if (StarPost) {
+            
+            // --- RESET BLOCK ---
+            // Clear BOTH arrays when a fresh zone loads
+            for (int32 p = 0; p < PLAYER_COUNT; ++p) {
+                StarPost->playerPositions[p].x = 0;
+                StarPost->playerPositions[p].y = 0;
+                StarPost->playerDirections[p]  = FLIP_NONE;
+                StarPost->postIDs[p]           = 0;
 
-        globals->checkpointMilliseconds = 0;
-        globals->checkpointSeconds      = 0;
-        globals->checkpointMinutes      = 0;
+                globals->checkpointPos[p].x = 0;
+                globals->checkpointPos[p].y = 0;
+                globals->checkpointDir[p]   = FLIP_NONE;
+                globals->checkpointID[p]    = 0;
+            }
+
+            StarPost->storedMS      = 0;
+            StarPost->storedSeconds = 0;
+            StarPost->storedMinutes = 0;
+
+            globals->checkpointMilliseconds = 0;
+            globals->checkpointSeconds      = 0;
+            globals->checkpointMinutes      = 0;
+            // -------------------
+        }
 
         globals->tempMilliseconds = 0;
         globals->tempSeconds      = 0;
         globals->tempMinutes      = 0;
-        // -------------------------------
     }
 }
 
@@ -264,25 +287,34 @@ void SaveGame_SaveGameState(void)
     SaveRAM *saveRAM        = SaveGame_GetSaveRAM();
     globals->recallEntities = true;
 
-    // --- EDIT 3: SAVING THE NEW ARRAYS ---
-    // Tell the engine to grab your new custom Extra Slot arrays!
-    for (int32 p = 0; p < 4; ++p) {
-        globals->restartPos[(p * 2) + 0] = globals->checkpointPos[p].x;
-        globals->restartPos[(p * 2) + 1] = globals->checkpointPos[p].y;
-        globals->restartDir[p]           = globals->checkpointDir[p];
-        globals->restartSlot[p]          = globals->checkpointID[p]; // <--- This fixes Green Hill!
+    // --- SAVE BLOCK ---
+    // Tell the engine to grab the checkpoint data!
+    for (int32 p = 0; p < PLAYER_COUNT; ++p) {
+        // Fallback to StarPost data first...
+        globals->restartPos[(p * 2) + 0] = StarPost->playerPositions[p].x;
+        globals->restartPos[(p * 2) + 1] = StarPost->playerPositions[p].y;
+        globals->restartDir[p]           = StarPost->playerDirections[p];
+        globals->restartSlot[p]          = StarPost->postIDs[p];
+
+        // ...but overwrite it with the Extra Slot data if an Extra Slot checkpoint exists!
+        if (globals->checkpointID[p] > 0) {
+            globals->restartPos[(p * 2) + 0] = globals->checkpointPos[p].x;
+            globals->restartPos[(p * 2) + 1] = globals->checkpointPos[p].y;
+            globals->restartDir[p]           = globals->checkpointDir[p];
+            globals->restartSlot[p]          = globals->checkpointID[p];
+        }
     }
 
     EntityPlayer *player1        = RSDK_GET_ENTITY(SLOT_PLAYER1, Player);
-    globals->restartMilliseconds = globals->checkpointMilliseconds;
-    globals->restartSeconds      = globals->checkpointSeconds;
-    globals->restartMinutes      = globals->checkpointMinutes;
+    globals->restartMilliseconds = globals->checkpointMilliseconds ? globals->checkpointMilliseconds : StarPost->storedMS;
+    globals->restartSeconds      = globals->checkpointSeconds    ? globals->checkpointSeconds    : StarPost->storedSeconds;
+    globals->restartMinutes      = globals->checkpointMinutes    ? globals->checkpointMinutes    : StarPost->storedMinutes;
     
     // Fixed the base game typo!
     globals->tempMilliseconds    = SceneInfo->milliseconds;
     globals->tempSeconds         = SceneInfo->seconds;
     globals->tempMinutes         = SceneInfo->minutes;
-    // -------------------------------------
+    // ------------------
 
     saveRAM->lives           = player1->lives;
     globals->restartLives[0] = player1->lives;
