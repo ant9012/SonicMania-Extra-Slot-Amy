@@ -1,0 +1,109 @@
+name: Build Extra Slot Amy
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    name: Build for Windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure CMake
+        run: cmake -B build
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Upload Game.dll
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows-Game-DLL
+          path: build/Game.dll # Adjust path if CMake outputs to build/Release/Game.dll
+
+  build-linux:
+    name: Build for Linux
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        # Uses the Debian/Ubuntu apt commands from your README
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake libglew-dev libglfw3-dev libtheora-dev
+
+      - name: Configure CMake
+        run: cmake -B build
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Upload libGame.so
+        uses: actions/upload-artifact@v4
+        with:
+          name: Linux-libGame-so
+          path: build/libGame.so
+
+  build-switch:
+    name: Build for Nintendo Switch
+    runs-on: ubuntu-latest
+    # Uses the official devKitPro container to easily access dkp-pacman
+    container: devkitpro/devkita64:latest 
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Switch Dependencies
+        # Installs the specific packages outlined in the README
+        run: dkp-pacman -Syuu --noconfirm switch-dev switch-libogg switch-libtheora switch-sdl2 switch-glad
+
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_TOOLCHAIN_FILE=/opt/devkitpro/cmake/Switch.cmake
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Upload Switch Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: Switch-Build
+          path: build/ # Uploads the whole build dir since exact Switch output name wasn't specified
+
+  build-wasm:
+    name: Build for WASM / Emscripten
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake libglew-dev libglfw3-dev libtheora-dev
+
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: latest
+
+      - name: Configure CMake (Emscripten)
+        run: emcmake cmake -B build
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Upload Game.wasm
+        uses: actions/upload-artifact@v4
+        with:
+          name: WASM-Game-wasm
+          path: |
+            build/Game.wasm
+            build/Game.js # Sometimes Emscripten spits out a companion JS file, good to grab just in case!
