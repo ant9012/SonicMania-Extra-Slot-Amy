@@ -53,7 +53,7 @@ GlobalVariables *globals;
 #if RETRO_REV0U
 void GlobalVariables_InitCB(GlobalVariables *globals)
 {
-    if (globals->gameMode == MODE_NOSAVE && globals->saveSlotID == NO_SAVE_SLOT) {
+    if (globals->gameMode == GAMEMODE_NOSAVE && globals->saveSlotID == NO_SAVE_SLOT) {
         memset(globals, 0, sizeof(GlobalVariables));
     }
 
