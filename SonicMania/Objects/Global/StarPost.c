@@ -98,10 +98,13 @@ void StarPost_StageLoad(void)
 {
     StarPost->aniFrames = RSDK.LoadSpriteAnimation("Global/StarPost.bin", SCOPE_STAGE);
 
+    // --- HITBOX FIXED HERE ---
+    // Top and bottom extended to 52 to cover the entire pole down to the floor
     StarPost->hitbox.left   = -8;
-    StarPost->hitbox.top    = -64;
+    StarPost->hitbox.top    = -52; 
     StarPost->hitbox.right  = 8;
-    StarPost->hitbox.bottom = 0;
+    StarPost->hitbox.bottom = 52;  // This was 0! It was letting you roll right under it!
+    // -------------------------
 
     StarPost->sfxStarPost = RSDK.GetSfx("Global/StarPost.wav");
     StarPost->sfxWarp     = RSDK.GetSfx("Global/Warp.wav");
