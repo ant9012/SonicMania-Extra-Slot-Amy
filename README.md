@@ -1,3 +1,5 @@
+# THIS IS DISCONITNUED PLAY ADDENDUM WASM INSTEAD: https://github.com/ant9012/Sonic-Mania-Addendum-wasm
+
 # **READ THE ORIGINAL README.MD!!!**
 + [Original README](https://github.com/Rubberduckycooly/Sonic-Mania-Decompilation#readme)
 
